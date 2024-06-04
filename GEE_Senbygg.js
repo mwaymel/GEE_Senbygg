@@ -1,16 +1,32 @@
-//___________Kartverket - SENBYGG project - New buildings detection___________
+//This is a Javascript code for running in Google Earth Engine
 
-var area = ee.FeatureCollection("users/majuwa/senbygg/Trondheim_area");//Trondheim_Fortunalia");
-var name_export = 'Trondheim_area_10m';
-var export_folder = 'Senbygg GEE';
+//Authors: Mathilde Waymel for Kartverket - Adapted version from SENBYGG python code
 
-var ground_truth_building = ee.FeatureCollection("users/majuwa/senbygg/Bygningsendring_Verdal_2020_2023");
+//_________________________________________________________________________________________________
+//_________________________________________________________________________________________________
 
+//              This code spots the changes in buildings using Sentinel1 data
+
+
+//_____________________________________PARAMETERS TO SET___________________________________________
+
+//Area of interest
+var area = ee.FeatureCollection("users/majuwa/senbygg/Trondheim_area");
+
+//Period of interest
 var year_start = '2019';
 var year_end_included = '2023';
 
-var scale = 10; //export scale
+//Export parameters
+var name_export = 'Trondheim_area_10m';
+var export_folder = 'Senbygg GEE';
+var scale = 10; 
 
+//Ground truth layer (if available)
+var ground_truth_building = ee.FeatureCollection("users/majuwa/senbygg/Bygningsendring_Verdal_2020_2023");
+
+
+//Algorithm parameters
 var Thr_vv = 3.0; //Detection threshold on backscatter difference in VV channel [in dB]
 var Thr_vh = 3.0; //Detection threshold on backscatter difference in VH channel [in dB]
 var Thr_ndet = 4; //Required no. detections over all tracks and polarisations for overall decision to be change
@@ -20,9 +36,11 @@ var Thr_coh = 0.22; //Threshold on coherence value
 var PositiveChangeValue = 1;
 var NegativeChangeValue = 2;
 
-//___________________________________________________________________________
 
-//_____Image collection building_____
+//_________________________________________________________________________________________________
+
+//_________________________Image collection building__________________________
+
 var Coll_img = ee.ImageCollection('COPERNICUS/S1_GRD')
         .filter(ee.Filter.eq('instrumentMode', 'IW'))
         .filter(ee.Filter.date(year_start+'-01-01', year_end_included+'-12-31'))
@@ -88,8 +106,8 @@ function detect_change_by_orbit(ImgColl) {
     return ee.Image(mean_year_orbit).set(ee.Dictionary(['year', year, 'nb_img_year_orbit', nb_img_year_orbit])).select(['VV', 'VH']);
   });
   
-  //__________test enough list_nb_img_orbit
-  //__________confidence
+  //__________missing test enough list_nb_img_orbit
+  //__________missing confidence
 
   //Compute the change compared to the year before
   var one_orbit_change_with_year_before = ee.List.sequence(1, years.size().subtract(1)).map(function(y) { 
@@ -141,9 +159,6 @@ function new_format_change_year(y) {
 var change_year = ImgColl_change_by_year.map(new_format_change_year).max();
 change_year = change_year.updateMask(change_year.neq(0));
 
-var imageVisParam = {"opacity":1,"bands":["detect_total_year"],"min":2019,"max":2023,"palette":["ffffff","00ff03","00d2ff","0f00ff"]};
-Map.addLayer(change_year, imageVisParam, 'Change by year');
-
 
 //____________change_type_______________
 function positive_change_type(y) {
@@ -157,40 +172,35 @@ var negative_change_year = ImgColl_change_by_year.map(negative_change_type).max(
 
 var change_type = positive_change_year.multiply(PositiveChangeValue).add(negative_change_year.multiply(NegativeChangeValue));
 change_type = change_type.updateMask(change_year.neq(0));
-print(change_type);
-var imageVisParam = {"opacity":1,"bands":["detect_total_year"],"min":2019,"max":2023,"palette":["ffffff","ff0000","0014ff","00ff0f"]};
-Map.addLayer(change_year, imageVisParam, 'Change type');
+
 
 //______________change_confidence__________
 
+//______missing
+
+//_________________________COMPARISON GROUND TRUTH______________________
+
+//______missing
 
 
-Map.setCenter(10.330011418550432, 63.34909959771915, 15);//10.3924,63.4306, 13);  //11.480730992918344,63.788585839879254, 14);
+//___________________________________Display_____________________________
 
-
+Map.centerObject(area);
 Map.addLayer(ee.Image().byte().paint({featureCollection: area,color: 1,width: 3}), {palette: 'FF0000'}, 'area of interest');
 
+var imageVisParam = {"opacity":1,"bands":["detect_total_year"],"min":2019,"max":2023,"palette":["ffffff","00ff03","00d2ff","0f00ff"]};
+Map.addLayer(change_year, imageVisParam, 'Change by year');
 
+var imageVisParam = {"opacity":1,"palette":["ff0000","0014ff","00ff0f"]};
+Map.addLayer(change_type, imageVisParam, 'Change type');
 
-//===================EXPORT==================
+Map.addLayer(ground_truth_building, {color: 'FF0000'}, 'building ground truth');
 
-//Rastor
+//_______________________________________________________________________
+//===================================EXPORTS=============================
+
 var change_year_name_export = name_export + '_change_year_'+year_start+'_'+year_end_included;
 var change_type_name_export = name_export + '_change_type_'+year_start+'_'+year_end_included;
-
-/*
-//Vector
-var vector_name_export = name_export + '_smooth_rd_vector';
-var depth_smooth_rd_vector = depth_smooth_rd.addBands(depth_smooth_rd).reduceToVectors({
-  geometry: area,
-  crs: roi.projection(),
-  scale: scale_export,
-  geometryType: 'polygon',
-  eightConnected: true,
-  labelProperty: 'B2_median',
-  reducer: ee.Reducer.min()
-});
-*/
 
 var area_geom = ee.Geometry(area.geometry()).transform();
 var projection = area_geom.projection().getInfo(); 
@@ -214,20 +224,4 @@ Export.image.toDrive({
   crs: projection.crs,
   region: area
 });
-
-/*
-//Difference rounded vector
-Export.table.toDrive({
-  collection: depth_smooth_rd_vector,
-  description: difference_name_export + '_rd_vector',
-  folder: export_folder,
-  fileFormat: 'SHP'
-});
-
-*/
-
-//__________________COMPARISON GROUND TRUTH________________
-
-Map.addLayer(ground_truth_building, {color: 'FF0000'}, 'building ground truth');
-
 
