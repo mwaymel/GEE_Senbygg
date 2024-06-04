@@ -1,7 +1,9 @@
 # Automatic detection of changes in buildings using Sentinel 1 on Google Earth Engine (GEE) - SENBYGG project
 
 The Senbygg project aims to detect changes in buildings using data from the Sentinel-1 satellite. Sentinel-1, a radar satellite, provides information on height variations by comparing images taken at different times. By comparing median images from consecutive years, the code can identify the construction or demolition of buildings and generate annual change maps.
+
 The original project was funded by the Framework Partnership Agreement on Copernicus User Uptake (FPCUP) and the Norwegian Space Agency (NOSA). The action was coordinated by NOSA with the Norwegian Mapping Authority (NMA) as an implementing partner and NORCE as a sub-contractor to the NMA. Several Python code files were developed during the initial project, which Torgeir Ferdinand Klingenberg later adapted for our specific case study, enhancing their usability.
+
 This new Senbygg study aimed to adapt the code for the specific area of study, update calls to external resources if necessary, and test the accuracy of the code by comparing it to field data. It was also planned to explore other potential detection methods if any appeared promising and to test their accuracy.
 
 *SENBYGG project.pdf* is the report of this project.
